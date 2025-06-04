@@ -1,0 +1,104 @@
+
+Title:: SoftClock
+Summary:: a clock that does smooth tempo transitions.
+categories:: Clocks
+related:: Classes/TempoClock, Classes/ListeningClock, Classes/TelepathicClock
+
+DESCRIPTION::
+SoftClock allows to make smooth tempo transitions. See TempoClock for most methods.
+SoftClock was developed for the project Virtual Gamelan Graz by Rainer Schütz, Alberto de Campo, and Julian Rohrhuber.
+
+ClassMethods::
+
+METHOD:: all
+
+Like TempoClock, SoftClock keeps track of its instances so that they may be stopped globally. To keep a clock running, set permanent = true.
+To remove a permanent clock, use the message stop.
+
+METHOD:: stopAll
+
+Stop all SoftClocks.
+
+InstanceMethods::
+
+METHOD:: tempo
+Get tempo or set newTempo given.
+
+METHOD:: fadeTempo
+
+Move to new tempo over a given time (dur - default: 1.0) and in a given transition shape (warp - default: \cos). This transition normally happens within the frame of reference of SystemClock (seconds), however a different clock may be passed in the clock argument.
+METHOD:: warpTempo
+
+Modify the tempo to a fraction (frac) of the current tempo over a given duration (beats - default: 1.0) and with a given shape (warp - default: \cos). The time base is the clock itself.
+
+METHOD:: pause
+Set the tempo to zero over dur (default: immediately)
+
+METHOD:: rateOfChange
+Returns the current change rate.
+
+METHOD:: beatWrap
+
+If nBeats is given, the clock will not catch up with the absolute phase of the others, but only within the given number of beat cycles. This is useful to avoid confusion after fast tempo changes given that the music has a circular event structure where absolute phase does not matter.
+
+Examples::
+
+code::
+t = SoftClock.new;
+(
+(
+SynthDef(\ping, {|freq, pan, amp=0.3|
+	var e, z;
+	e= EnvGen.ar(Env.perc(0, 0.1, amp), doneAction:2);
+	z= SinOsc.ar(freq, 0, 0.2);
+	OffsetOut.ar(0, Pan2.ar(z*e, pan));
+}).add;
+);
+)
+	// play a pattern on clock t:
+(
+Pdef(\a,
+	Pbind(\instrument, \ping,
+\degree, Pseq((0..7), inf),
+\dur, 0.25, \pan, -0.5, \amp, 0.5
+	)
+).play(t);
+)
+// fadeTempo(newTempo, time, warp); //
+// makes a smooth tempo change on a listening clock
+// newTempo is the tempo to go to,
+// time is the transition time,
+// and warp the warp of the interpolation from current to new tempo.
+
+t.verbose_(true);
+t.fadeTempo(exprand(0.5, 2.0), 4);
+t.fadeTempo(exprand(0.5, 2.0), 4);
+
+t.fadeTempo(0.5, 2);
+t.fadeTempo(1, 4, \cos);  		// cosine shape (default): starts slow, ends slow
+t.fadeTempo(2, 4, \sin); 		// sine shape, starts faster, ends slow
+t.fadeTempo(3, 4.2, \exp);  	// exp is not recommended;
+								// it would require fixes in ExponentialWarp.
+t.fadeTempo(0.5, 4.5, \amp);
+t.fadeTempo(2, 3.21, \amp);
+((0..100)/100).collect(\cos.asWarp.map(_)).plot;
+((0..100)/100).collect(\sin.asWarp.map(_)).plot;
+((0..100)/100).collect(\amp.asWarp.map(_)).plot;
+((0..100)/100).collect(\exp.asWarp.map(_)).plot;
+
+t.fadeTempo(1, 4, -4);  	// more change happens at the start
+t.fadeTempo(2, 4, 4);  		// more change happens at the end
+
+((0..100)/100).collect(-4.asWarp.map(_)).plot;
+((0..100)/100).collect(4.asWarp.map(_)).plot;
+	// a new tempofade stops an ongoing fade,
+	// and continues from there:
+(
+fork {
+	t.fadeTempo(1, 4, -4);
+	2.03.wait;
+	"XXX new fade XXX".postln;
+	t.fadeTempo(2, 4, 4);
+};
+)
+::

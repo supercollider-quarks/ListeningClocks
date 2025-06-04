@@ -1,0 +1,240 @@
+Title:: ListeningClock
+Summary:: a clock that listens to other clocks
+categories:: Clocks
+related:: Classes/TempoClock
+
+description::
+ListeningClock implements phase and frequency adjustment to a number of other clocks. This can be useful to synchronise ensembles in a fluent way. Together, they behave like cartoonified musicians who entrain to  each other.
+
+It takes inspiration from the intricate improvisation practice of Javanese and Balinese Gamelan playing and was developed for the project Virtual Gamelan Graz by Rainer Schütz, Alberto de Campo, and Julian Rohrhuber.
+
+section:: Creation / Class Methods
+
+METHOD:: all
+
+Like TempoClock, ListeningClock keeps track of its instances so that they may be stopped globally. To keep a clock running, set permanent = true.
+To remove a permanent clock, use the message stop.
+
+METHOD:: new
+
+Creates a new instance with the given tempo and starting times. If not supplied, tempo defaults to 1.0, beats defaults to 0.0 and seconds defaults to the current elapsed time since SuperCollider startup. The default queueSize is 256, see queue (see TempoClock).
+
+
+section:: Instance Methods
+
+METHOD:: others
+An array of other clocks which this clock listens to.
+
+METHOD:: weights
+
+An array of degrees which determines how much this clock listens to each other clock  (0.0..1.0)
+
+METHOD:: setClocks(clocks, argWeights, start)
+
+Determine the other clocks and their weights. If start is true (default: true), listening begins immediately.
+
+METHOD:: startListen
+
+Start to listen to the clocks in others.
+
+METHOD:: stopListen
+
+Stop listening. The clock continues to work, but without interaction to the others.
+
+METHOD:: isListening
+
+Returns true if clock is listening
+
+METHOD:: verbose
+
+If verbose is set to true, clock posts a lot of information on its current state.
+
+METHOD:: dt(val = 0.1)
+
+Time difference between adjustments, at which the clock tempo and phase are updated
+
+NOTE:: strong::Empathy and Confidence::
+
+Two parameters are responsible for the clock's adaptive behavior: empathy and confidence. Empathy is related to the degree of phase adjustment: If empathy is high, the clock remains tight in phase with the others. Confidence, on the other hand, is connected with tempo (frequency): If confidence is high, the clock keeps its own tempo, if it is low, it quickly adjusts to the other tempi. Basis for these adjustments is the weighted average of phase and tempo of the other clocks.
+::
+
+METHOD:: empathy
+
+Set the degree of empathy within a range between 0 (no empathy) and 1 (total empathy). Default: 0.5.
+
+METHOD:: confidence
+
+Set the degree of confidence within a range between 0 (zero confidence) and 1 (total self confidence). Default: 0.5.
+
+METHOD:: tempo
+Get Tempo, and set tempo immediately.
+
+A ListeningClock also implements slow direct tempo adjustments.
+
+METHOD::fadeTempo(newTempo, dur, warp, clock)
+
+Move to new tempo over a given time (dur - default: 1.0) and in a given transition shape (warp - default: \cos). This transition normally happens within the frame of reference of SystemClock (seconds), however a different clock may be passed in the clock argument.
+
+METHOD::warpTempo(frac, beats, warp)
+
+Modify the tempo to a fraction (frac) of the current tempo over a given duration (beats - default: 1.0) and with a given shape (warp - default: \cos). The time base is the clock itself.
+
+METHOD::pause(dur)
+
+Set the tempo to zero over dur (default: immediately)
+
+METHOD::rateOfChange
+
+Returns the current change rate.
+
+METHOD::beatWrap
+
+If nBeats is given, the clock will not catch up with the absolute phase of the others, but only within the given number of beat cycles. This is useful to avoid confusion after fast tempo changes given that the music has a circular event structure where absolute phase does not matter.
+
+Examples::
+code::
+// make three listening clocks.
+(
+t = ListeningClock.new.permanent_(true);
+u = ListeningClock.new.permanent_(true);
+v = ListeningClock.new.permanent_(true);
+
+u.setClocks([t]); 	// u listens to t.
+v.setClocks([t]);	// v listens to t.
+);
+
+// make a percussive ping
+(
+(
+SynthDef(\ping, {|freq, pan, amp=0.3|
+	var e, z;
+	e = EnvGen.ar(Env.perc(0, 0.1, amp), doneAction: 2);
+	z = SinOsc.ar(freq, 0, 0.2);
+	OffsetOut.ar(0, Pan2.ar(z * e, pan));
+}).add;
+);
+)
+
+// play a pattern on clock t:
+(
+Pdef(\a,
+	Pbind(\instrument, \ping,
+		\degree, Pseq((0..7), inf),
+		\dur, 0.25, \pan, -0.5, \amp, 0.5
+	)
+
+).play(t);
+)
+
+// fadeTempo(newTempo, time, warp);
+// makes a smooth tempo change on a listening clock:
+// newTempo is the tempo to go to,
+// time is the transition time,
+// and warp the warp of the interpolation from current to new tempo.
+
+t.verbose_(true);
+
+t.fadeTempo(exprand(0.5, 2.0), 4);
+
+t.fadeTempo(exprand(0.5, 2.0), 4);
+
+t.fadeTempo(0.5, 2);
+
+t.fadeTempo(1, 4, \cos);  // cosine shape (default): starts slow, ends slow
+
+t.fadeTempo(2, 4, \sin); // sine shape, starts faster, ends slow
+
+t.fadeTempo(3, 4.2, \exp);  	// exp is not recommended;
+								// it would require fixes in ExponentialWarp.
+
+t.fadeTempo(0.5, 4.5, \amp);
+
+t.fadeTempo(2, 3.21, \amp);
+
+// show different warps:
+((0..100)/100).collect(\cos.asWarp.map(_)).plot;
+((0..100)/100).collect(\sin.asWarp.map(_)).plot;
+((0..100)/100).collect(\amp.asWarp.map(_)).plot;
+((0..100)/100).collect(\exp.asWarp.map(_)).plot;
+
+t.fadeTempo(1, 4, -4);  	// more change happens at the start
+
+t.fadeTempo(2, 4, 4);  // more change happens at the end
+
+((0..100)/100).collect(-4.asWarp.map(_)).plot;
+
+((0..100)/100).collect(4.asWarp.map(_)).plot;
+
+// a new tempofade stops any ongoing fade,
+// and continues from there:
+(
+fork {
+	t.fadeTempo(1, 4, -4);
+	2.03.wait;
+	"*** new fade ***".postln;
+	t.fadeTempo(2, 4, 4);
+};
+
+)
+
+t.fadeTempo(1, 0.1);
+
+// use clock u following clock t:
+
+(
+Pdef(\a).play(t);
+
+// play same pattern, one octave higher, on clock u:
+Pdef(\b,
+	Pbind(
+		\instrument, \ping,
+		\degree, Pseq((0..7), inf) + 7,
+		\dur, 0.25, \pan, 0.5, \amp, 0.5
+	)
+).play(u);
+)
+
+t.verbose_(false); u.verbose_(true);
+
+t.fadeTempo(2, 4, -2);
+
+t.fadeTempo(0.5, 4, -2);
+
+// clock u's following behaviour depends on 2 variables:
+// empathy - how much does 'u' care about being off in time (from t, or several others)?
+// confidence - how much does 'u' want to keep its own tempo?
+// default settings for both: 0.5.
+
+u.empathy.postln;	u.confidence.postln;
+
+// high empathy: u follows quickly.
+u.empathy_(0.8);	u.confidence_(0.2);
+t.fadeTempo(1, 4, -2);
+
+// very stubborn
+u.empathy_(0.2);	u.confidence_(0.8);
+t.fadeTempo(2, 4, -2);
+
+// play same pattern on clock v, a third higher,
+(
+Pdef(\a).play(t);
+Pdef(\b).play(u);
+
+Pdef(\c,
+	Pbind(
+		\instrument, \ping,
+		\degree, Pseq((0..7), inf) + 9,
+		\dur, 0.25, \pan, 0.0, \amp, 0.5
+	)
+).play(v);
+)
+
+// u follows closely,
+// v is more stubborn
+u.empathy_(0.7).confidence_(0.3);
+v.empathy_(0.4).confidence_(0.6);
+
+t.fadeTempo(2, 4, -2);
+t.fadeTempo(0.5, 4, -2);
+::
+

@@ -1,0 +1,122 @@
+TITLE:: TelepathicClock
+summary:: a clock that listens to other clocks over a network
+categories:: Clocks
+related:: Classes/TempoClock, Classes/SoftClock, Classes/ListeningClock
+
+DESCRIPTION::
+Like ListeningClock, a telepathic clock adjusts to others, but it does so over the network. It was developed for the project Virtual Gamelan Graz by Rainer Schütz, Alberto de Campo, and Julian Rohrhuber.
+
+NOTE:: This is just quickly pasted over from old hmtl help file,
+TelepathicClock and its help file need real updates. ::
+
+
+First code examples:
+code::
+...
+::
+
+CLASSMETHODS::
+
+METHOD:: addClockSourceCmd
+the name of the command for adding TelepathicClocks.
+
+METHOD:: new
+Creates a new instance with the given tempo and starting times. If not supplied, tempo defaults to 1.0, beats defaults to 0.0 and seconds defaults to the current elapsed time since SuperCollider startup. The default queueSize is 256, see queue (see TempoClock).
+
+argument:: permanent
+if true (default: false), the clock is not removed on cmdPeriod (or equivalent).
+
+argument:: addr
+The address given is a NetAddr which serves as a message receiver, usually this is the local broadcast address.
+
+argument:: channel
+For several independent networks of telepathic clocks, different channels may be used. The name is used as osc command. Default:  '/teleclock'
+
+argument:: start
+If true, the new clock starts to listen immediately (default: true).
+
+INSTANCEMETHODS::
+
+METHOD:: responder
+The OSCresponder
+
+METHOD:: name
+
+METHOD:: addClockSource
+argument:: name
+
+METHOD:: startListen
+
+METHOD:: allowOthersToAdd
+argument:: flag
+
+METHOD:: stopListen
+
+METHOD:: removeClockSource
+argument:: name
+
+
+EXAMPLES::
+
+code::
+// first step: find your local local broadacst ip.
+// For demonstration, we assume here the loopback ip (on a single computer).
+
+
+// make three telepathic clocks.
+(
+var addr = NetAddr("127.0.0.1", NetAddr.langPort);
+t = TelepathicClock(permanent: true, addr: addr);
+u = TelepathicClock(permanent: true, addr: addr);
+v = TelepathicClock(permanent: true, addr: addr);
+);
+
+(
+(
+SynthDef(\ping, {|freq, pan, amp=0.3|
+	var e, z;
+	e= EnvGen.ar(Env.perc(0, 0.1, amp), doneAction:2);
+	z= SinOsc.ar(freq, 0, 0.2);
+	OffsetOut.ar(0, Pan2.ar(z*e, pan));
+}).add;
+);
+)
+
+	// play a pattern on clock t:
+	// clock U following clock t:
+(
+Pdef(\a,
+	Pbind(\instrument, \ping,
+		\degree, Pseq((0..7), inf),
+		\dur, 0.25, \pan, -0.5, \amp, 0.5
+	)
+).play(t);
+
+Pdef(\b,
+	Pbind(
+		\instrument, \ping,
+		\degree, Pseq((0..7), inf) + 7,
+		\dur, 0.25, \pan, 0.5, \amp, 0.5
+	)
+).play(u);
+)
+
+t.verbose_(false); u.verbose_(true);
+
+
+
+t.tempo = 1.4;
+
+
+t.fadeTempo(2, 4, -2);
+
+t.fadeTempo(0.5, 4, -2);
+
+
+u.tempo;
+
+t.tempo;
+
+
+[t, u, v].do(_.stop);
+::
