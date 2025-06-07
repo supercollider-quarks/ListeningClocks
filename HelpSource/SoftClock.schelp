@@ -45,6 +45,12 @@ Examples::
 
 code::
 t = SoftClock.new;
+
+// t is not added automatically to all:
+SoftClock.all;
+t.add;
+SoftClock.all;
+
 (
 (
 SynthDef(\ping, {|freq, pan, amp=0.3|
@@ -64,15 +70,21 @@ Pdef(\a,
 	)
 ).play(t);
 )
+
+// post info on tempo changes
+t.verbose_(true);
+
 // fadeTempo(newTempo, time, warp); //
 // makes a smooth tempo change on a listening clock
 // newTempo is the tempo to go to,
 // time is the transition time,
 // and warp the warp of the interpolation from current to new tempo.
 
-t.verbose_(true);
 t.fadeTempo(exprand(0.5, 2.0), 4);
 t.fadeTempo(exprand(0.5, 2.0), 4);
+
+// pause fades tempo to 0:
+t.pause(3);
 
 t.fadeTempo(0.5, 2);
 t.fadeTempo(1, 4, \cos);  		// cosine shape (default): starts slow, ends slow
@@ -81,6 +93,8 @@ t.fadeTempo(3, 4.2, \exp);  	// exp is not recommended;
 								// it would require fixes in ExponentialWarp.
 t.fadeTempo(0.5, 4.5, \amp);
 t.fadeTempo(2, 3.21, \amp);
+
+// show different warps:
 ((0..100)/100).collect(\cos.asWarp.map(_)).plot;
 ((0..100)/100).collect(\sin.asWarp.map(_)).plot;
 ((0..100)/100).collect(\amp.asWarp.map(_)).plot;
@@ -91,13 +105,15 @@ t.fadeTempo(2, 4, 4);  		// more change happens at the end
 
 ((0..100)/100).collect(-4.asWarp.map(_)).plot;
 ((0..100)/100).collect(4.asWarp.map(_)).plot;
-	// a new tempofade stops an ongoing fade,
-	// and continues from there:
+
+
+// a new fadeTempo stops any ongoing fade,
+// and continues from there:
 (
 fork {
 	t.fadeTempo(1, 4, -4);
 	2.03.wait;
-	"XXX new fade XXX".postln;
+	"*** new fade starts ***".postln;
 	t.fadeTempo(2, 4, 4);
 };
 )
