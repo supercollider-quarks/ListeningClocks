@@ -4,19 +4,19 @@
 
 
 
-// abstact superclock //
+// abstract superclock //
 
 SoftClock : TempoClock {
 
 	var <>dt = 0.1, <>verbose = false;
-	var fadeTask, fading=false, isPlaying=true;
+	var fadeTask, <fading=false, <isPlaying=true;
 	var <rateOfChange = 1.0;
 	var <>minTempo = 0.01, <>maxTempo = 100;
 
 	classvar <>all;
 
-	add {
-		this.class.all = this.class.all.add(this);
+	*new { arg tempo, beats, seconds, queueSize=256;
+		^super.new.init(tempo, beats, seconds, queueSize).add
 	}
 
 	*stopAll {
@@ -27,6 +27,13 @@ SoftClock : TempoClock {
 		this.all = nil;
 	}
 
+	add {
+		this.class.all = this.class.all ?? { [] };
+		if (this.class.all.includes(this).not) {
+			this.class.all = this.class.all.add(this)
+		};
+	}
+
 	stop {
 		this.stopListen;
 		isPlaying = false;
@@ -34,6 +41,9 @@ SoftClock : TempoClock {
 		if(this.class.all.notNil) { this.class.all.take(this) };
 		if(verbose) { ("stopped clock:" + this).postln };
 	}
+
+	// implemented in subclasses
+	stopListen { }
 
 	tempo_ { arg newTempo;
 		newTempo = max(newTempo, 1e-256); // zero not allowed.

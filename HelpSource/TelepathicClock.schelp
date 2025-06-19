@@ -6,7 +6,7 @@ related:: Classes/TempoClock, Classes/SoftClock, Classes/ListeningClock
 DESCRIPTION::
 Like ListeningClock, a telepathic clock adjusts to others, but it does so over the network. It was developed for the project Virtual Gamelan Graz by Rainer Schütz, Alberto de Campo, and Julian Rohrhuber.
 
-NOTE:: This is just quickly pasted over from old hmtl help file,
+NOTE:: This help file was just quickly pasted over from old hmtl help file,
 TelepathicClock and its help file need real updates. ::
 
 

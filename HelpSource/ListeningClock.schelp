@@ -103,6 +103,10 @@ u.setClocks([t]); 	// u listens to t.
 v.setClocks([t]);	// v listens to t.
 );
 
+ListeningClock.all.collect(_.isPlaying);
+
+ListeningClock.stopAll;
+
 // make a percussive ping
 (
 (
@@ -126,6 +130,7 @@ Pdef(\a,
 ).play(t);
 )
 
+///// Same behavior as in SoftClock:
 // fadeTempo(newTempo, time, warp);
 // makes a smooth tempo change on a listening clock:
 // newTempo is the tempo to go to,
@@ -179,7 +184,7 @@ fork {
 
 t.fadeTempo(1, 0.1);
 
-// use clock u following clock t:
+// show clock u following clock t:
 
 (
 Pdef(\a).play(t);
